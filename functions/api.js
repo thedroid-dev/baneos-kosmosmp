@@ -1,90 +1,94 @@
 const express = require('express');
-const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
+const axios = require('axios');
+const cheerio = require('cheerio');
 const serverless = require('serverless-http');
 
 const app = express();
+const router = express.Router();
 
-app.use(
-  '/',
-  createProxyMiddleware({
-    target: 'https://packsmc.com',
-    changeOrigin: true,
-    selfHandleResponse: true,
-    on: {
-      proxyReq: (proxyReq) => {
-        proxyReq.setHeader('Host', 'packsmc.com');
-        proxyReq.setHeader('Referer', 'https://packsmc.com/');
-        proxyReq.setHeader('Origin', 'https://packsmc.com');
-        proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-        // Forzar texto plano para evitar datos binarios corruptos
-        proxyReq.setHeader('Accept-Encoding', 'identity');
-      },
-      proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-        delete proxyRes.headers['content-security-policy'];
-        delete proxyRes.headers['x-frame-options'];
-        // Limpiar codificación ya que entregaremos texto plano modificado
-        delete proxyRes.headers['content-encoding'];
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept-Language': 'es-ES,es;q=0.9'
+};
 
-        const contentType = proxyRes.headers['content-type'] || '';
+// API: Obtener lista de packs y resultados de búsqueda reales
+router.get('/packs', async (req, res) => {
+  try {
+    const search = req.query.q || '';
+    const targetUrl = search 
+      ? `https://packsmc.com/search?q=${encodeURIComponent(search)}`
+      : `https://packsmc.com/packs`;
 
-        if (contentType.includes('text/html')) {
-          let html = responseBuffer.toString('utf8');
+    const response = await axios.get(targetUrl, { headers: HEADERS });
+    const $ = cheerio.load(response.data);
+    const packs = [];
 
-          // INYECCIÓN DE TUS ESTILOS Y MARCA (KEEFPACKS / 71x7)
-          const customStyle = `
-            <style id="keefpacks-master">
-              :root {
-                --bg-main: #050507 !important;
-                --bg-card: #0f0f14 !important;
-                --border-color: #22222d !important;
-              }
-              html, body, div, header, main, footer, section, nav, article {
-                background-color: #050507 !important;
-                color: #ffffff !important;
-              }
-              [class*="green"], [class*="emerald"], [style*="rgb(16, 185, 129)"], [style*="#10b981"] {
-                color: #ffffff !important;
-                background-color: #1a1a22 !important;
-              }
-              article, .card, [class*="card"] {
-                background: #0f0f14 !important;
-                border: 1px solid #22222d !important;
-                border-radius: 14px !important;
-              }
-              [href*="discord"], [href*="plus"], [class*="plus"] {
-                display: none !important;
-              }
-              button, .btn {
-                background: #ffffff !important;
-                color: #000000 !important;
-                font-weight: 800 !important;
-                border-radius: 10px !important;
-              }
-              footer::after {
-                content: "KeefPacks © 2026 — Desarrollado y administrado por 71x7" !important;
-                display: block !important;
-                text-align: center !important;
-                padding: 24px !important;
-                color: #71717a !important;
-                font-size: 13px !important;
-                font-weight: 600 !important;
-              }
-            </style>
-            <script>
-              document.title = "KEEFPACKS — Texture Packs Vault (por 71x7)";
-            </script>
-          `;
+    const nextDataScript = $('#__NEXT_DATA__').html();
+    if (nextDataScript) {
+      const parsedData = JSON.parse(nextDataScript);
+      const pageProps = parsedData.props?.pageProps || {};
+      const rawPacks = pageProps.packs || pageProps.searchResults || pageProps.initialPacks || [];
 
-          html = html.replace(/PacksMC/gi, 'KeefPacks').replace(/PackMC/gi, 'KeefMC');
-          html = html.replace('</head>', `${customStyle}</head>`);
+      rawPacks.forEach(pack => {
+        packs.push({
+          id: pack.slug || pack.id,
+          title: (pack.name || pack.title || 'Pack sin nombre').replace(/PacksMC/gi, 'KeefPacks'),
+          image: pack.icon || pack.thumbnail || pack.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500',
+          resolution: pack.resolution || pack.category || '16x',
+          downloadUrl: `/api/download/${pack.slug || pack.id}`
+        });
+      });
+    }
 
-          return html;
-        }
+    res.json({ success: true, packs });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error al obtener los datos." });
+  }
+});
 
-        return responseBuffer;
-      }),
-    },
-  })
-);
+// API: Descarga directa oculta (Sin redireccionar a su web)
+router.get('/download/:id', async (req, res) => {
+  try {
+    const packId = req.params.id;
+    const packPageUrl = `https://packsmc.com/pack/${packId}`;
+    
+    const pageRes = await axios.get(packPageUrl, { headers: HEADERS });
+    const $ = cheerio.load(pageRes.data);
+    
+    let fileUrl = '';
+    const nextDataScript = $('#__NEXT_DATA__').html();
 
+    if (nextDataScript) {
+      const parsedData = JSON.parse(nextDataScript);
+      const packDetails = parsedData.props?.pageProps?.pack || {};
+      fileUrl = packDetails.downloadUrl || packDetails.fileUrl;
+    }
+
+    if (!fileUrl) {
+      fileUrl = $('a[href*=".zip"]').attr('href');
+    }
+
+    if (!fileUrl) {
+      return res.status(404).send('Enlace de descarga no disponible.');
+    }
+
+    if (!fileUrl.startsWith('http')) {
+      fileUrl = `https://packsmc.com${fileUrl}`;
+    }
+
+    const fileStream = await axios.get(fileUrl, {
+      headers: HEADERS,
+      responseType: 'stream'
+    });
+
+    res.setHeader('Content-Disposition', `attachment; filename="KeefPacks_${packId}.zip"`);
+    res.setHeader('Content-Type', 'application/zip');
+    fileStream.data.pipe(res);
+
+  } catch (error) {
+    res.status(500).send('Error al procesar la descarga.');
+  }
+});
+
+app.use('/api', router);
 module.exports.handler = serverless(app);
