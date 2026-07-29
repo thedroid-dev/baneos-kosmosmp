@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEEFPACKS — Minecraft Resources & Vault</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            black: '#050507',
+                            card: '#0f0f14',
+                            border: '#22222d',
+                            hover: '#1a1a24'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050507;
+            color: #ffffff;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .glass-header {
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #22222d;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- 1. NAVBAR / HEADER PRINCIPAL -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass-header">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <!-- LOGO KEEFPACKS -->
+            <a href="#" onclick="showSection('library')" class="flex items-center gap-3 font-black text-xl tracking-wider uppercase">
+                <div class="w-9 h-9 bg-white text-black rounded-xl flex items-center justify-center font-extrabold text-lg">
+                    <i class="fa-solid fa-cube"></i>
+                </div>
+                <span>KEEFPACKS</span>
+            </a>
+
+            <!-- MENÚ DE NAVEGACIÓN -->
+            <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-400">
+                <button onclick="showSection('library')" class="hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked"></i> Biblioteca
+                </button>
+                <button onclick="showSection('converter')" class="hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-right-left"></i> Convertidor
+                </button>
+                <button onclick="showSection('upload')" class="hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Subir Pack
+                </button>
+            </nav>
+
+            <!-- ACCIÓN Y LOGIN PROPIO -->
+            <div class="flex items-center gap-3">
+                <button onclick="toggleAuthModal()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider hover:bg-gray-200 transition">
+                    <i class="fa-solid fa-user-shield mr-1"></i> Mi Cuenta
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. CONTENIDO PRINCIPAL DINÁMICO -->
+    <main class="pt-24 pb-16 px-4 max-w-7xl mx-auto w-full flex-grow">
+
+        <!-- ================= SECCIÓN 1: BIBLIOTECA & BUSCADOR ================= -->
+        <section id="sec-library" class="space-y-8">
+            <!-- HERO BUSCADOR -->
+            <div class="text-center max-w-2xl mx-auto space-y-4">
+                <h1 class="text-3xl md:text-5xl font-black uppercase tracking-tight">
+                    PAQUETES DE TEXTURAS <span class="text-gray-500 block">KEEFPACKS VAULT</span>
+                </h1>
+                <p class="text-gray-400 text-sm">Explora, filtra y descarga recursos optimizados para cualquier versión de Minecraft.</p>
+                
+                <!-- BUSCADOR PERSONALIZADO -->
+                <div class="relative max-w-xl mx-auto mt-6">
+                    <input type="text" id="searchInput" placeholder="Buscar paquetes, resoluciones (16x, 128x)..." class="w-full bg-brand-card border border-brand-border rounded-2xl py-3.5 pl-12 pr-28 text-sm text-white focus:border-white transition outline-none">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-gray-500"></i>
+                    <button onclick="executeSearch()" class="absolute right-2 top-2 bottom-2 bg-white text-black font-extrabold px-4 rounded-xl text-xs uppercase hover:bg-gray-200 transition">
+                        Buscar
+                    </button>
+                </div>
+            </div>
+
+            <!-- GRILLA DE PAQUETES (Cargados vía API fantasma) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-8" id="packsGrid">
+                <!-- Tarjeta de Ejemplo de Pack -->
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-3 flex flex-col justify-between hover:border-white transition group">
+                    <div class="relative aspect-video bg-gray-900 rounded-xl overflow-hidden mb-3">
+                        <img src="https://picsum.photos/400/225?random=1" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <span class="absolute top-2 right-2 bg-black/80 border border-brand-border text-[10px] font-bold px-2 py-0.5 rounded-md">128X</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm truncate">Dark PvP Essentials</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Versión 1.8.9 - 1.20</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-brand-border flex items-center justify-between">
+                        <span class="text-xs text-gray-400"><i class="fa-solid fa-download text-gray-600"></i> 12.4k</span>
+                        <button onclick="downloadPack('sample')" class="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-200 transition">
+                            Descargar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 2: CONVERTIDOR DE TEXTURAS ================= -->
+        <section id="sec-converter" class="hidden space-y-6 max-w-2xl mx-auto text-center">
+            <h2 class="text-3xl font-black uppercase"><i class="fa-solid fa-right-left mr-2"></i> Convertidor de Paquetes</h2>
+            <p class="text-gray-400 text-sm">Convierte paquetes de Java a Bedrock o cambia la versión del archivo `.zip` en segundos.</p>
+            
+            <div class="bg-brand-card border border-brand-border p-8 rounded-3xl space-y-6">
+                <div class="border-2 border-dashed border-brand-border rounded-2xl p-8 hover:border-white transition cursor-pointer">
+                    <i class="fa-solid fa-file-zipper text-4xl text-gray-500 mb-3"></i>
+                    <p class="text-sm font-bold">Arrastra tu archivo .zip aquí</p>
+                    <p class="text-xs text-gray-500 mt-1">Soporta paquetes de cualquier resolución</p>
+                </div>
+                <button class="w-full bg-white text-black font-extrabold py-3 rounded-xl text-xs uppercase hover:bg-gray-200 transition">
+                    Procesar y Convertir
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= SECCIÓN 3: SUBIR UN PAQUETE ================= -->
+        <section id="sec-upload" class="hidden space-y-6 max-w-2xl mx-auto">
+            <div class="text-center space-y-2">
+                <h2 class="text-3xl font-black uppercase"><i class="fa-solid fa-cloud-arrow-up mr-2"></i> Publicar Paquete</h2>
+                <p class="text-gray-400 text-sm">Comparte tu paquete de texturas con la comunidad de KeefPacks.</p>
+            </div>
+
+            <form class="bg-brand-card border border-brand-border p-6 rounded-3xl space-y-4" onsubmit="event.preventDefault(); alert('Paquete enviado a revisión por 71x7');">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1">Nombre del Pack</label>
+                    <input type="text" class="w-full bg-black border border-brand-border rounded-xl p-3 text-sm focus:border-white outline-none" required placeholder="Ej. Keef PvP 16x">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1">Archivo del Paquete (.zip)</label>
+                    <input type="file" class="w-full bg-black border border-brand-border rounded-xl p-2.5 text-sm text-gray-400 focus:border-white outline-none" required>
+                </div>
+                <button type="submit" class="w-full bg-white text-black font-extrabold py-3 rounded-xl text-xs uppercase hover:bg-gray-200 transition">
+                    Subir a KeefPacks
+                </button>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- 3. MODAL PROPIO DE INICIO DE SESIÓN / REGISTRO -->
+    <div id="authModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border rounded-3xl p-6 w-full max-w-md relative shadow-2xl">
+            <button onclick="toggleAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-xl font-black uppercase mb-1"><i class="fa-solid fa-user-shield mr-2"></i> Acceso KeefPacks</h3>
+            <p class="text-xs text-gray-400 mb-6">Inicia sesión con tu cuenta propia administrada por 71x7.</p>
+
+            <form class="space-y-4" onsubmit="event.preventDefault(); alert('Acceso concedido en KeefPacks'); toggleAuthModal();">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1">Usuario / Email</label>
+                    <input type="text" class="w-full bg-black border border-brand-border rounded-xl p-3 text-sm focus:border-white outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1">Contraseña</label>
+                    <input type="password" class="w-full bg-black border border-brand-border rounded-xl p-3 text-sm focus:border-white outline-none" required>
+                </div>
+                <button type="submit" class="w-full bg-white text-black font-extrabold py-3 rounded-xl text-xs uppercase hover:bg-gray-200 transition">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. FOOTER CON FIRMA ÚNICA DE 71x7 -->
+    <footer class="border-t border-brand-border py-8 text-center text-xs text-gray-500 font-semibold">
+        <p>KEEFPACKS © 2026 — Plataforma desarrollada y administrada exclusivamente por <span class="text-white">71x7</span>.</p>
+        <p class="mt-1 text-[10px] text-gray-600">Todos los recursos son propiedad de sus respectivos creadores.</p>
+    </footer>
+
+    <!-- SCRIPTS DE INTERACCIÓN -->
+    <script>
+        function showSection(sectionId) {
+            document.getElementById('sec-library').classList.add('hidden');
+            document.getElementById('sec-converter').classList.add('hidden');
+            document.getElementById('sec-upload').classList.add('hidden');
+
+            document.getElementById('sec-' + sectionId).classList.remove('hidden');
+        }
+
+        function toggleAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        }
+
+        function executeSearch() {
+            const query = document.getElementById('searchInput').value;
+            alert('Buscando paquetes para: ' + query);
+        }
+
+        function downloadPack(id) {
+            // Conexión directa a través de la API proxy fantasma sin exponer la web original
+            window.location.href = '/api-proxy/download/' + id;
+        }
+    </script>
+</body>
+</html>
