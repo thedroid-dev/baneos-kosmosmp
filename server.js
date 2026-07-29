@@ -1,37 +1,46 @@
 const express = require('express');
-const axios = require('axios');
+const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(async (req, res) => {
-    try {
-        const targetUrl = `https://packsmc.com${req.url}`;
-        
-        // Obtenemos el contenido de PacksMC simulando ser un navegador real
-        const response = await axios.get(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept-Language': 'es-ES,es;q=0.9'
-            },
-            responseType: 'arraybuffer'
-        });
+app.use(
+  '/',
+  createProxyMiddleware({
+    target: 'https://packsmc.com',
+    changeOrigin: true,
+    selfHandleResponse: true, // Permite modificar la respuesta antes de enviarla
+    on: {
+      proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+        // Eliminamos las cabeceras que bloquean la visualización
+        delete proxyRes.headers['content-security-policy'];
+        delete proxyRes.headers['x-frame-options'];
 
-        let content = response.data.toString('utf-8');
+        // Si la respuesta es HTML, reescribimos los textos y marcas
+        const contentType = proxyRes.headers['content-type'] || '';
+        if (contentType.includes('text/html')) {
+          let responseText = responseBuffer.toString('utf8');
+          
+          // Reemplazos de marca
+          responseText = responseText.replace(/PacksMC/g, 'KOSMOS PACKS');
+          responseText = responseText.replace(/packsmc\.com/g, req.headers.host);
 
-        // Reemplazamos la marca PacksMC por KOSMOS PACKS en todo el HTML
-        content = content.replace(/PacksMC/g, 'KOSMOS PACKS');
-        content = content.replace(/packsmc\.com/g, req.headers.host);
+          return responseText;
+        }
 
-        // Eliminamos las cabeceras que bloquean el sitio
-        res.removeHeader('X-Frame-Options');
-        res.removeHeader('Content-Security-Policy');
-        
-        res.send(content);
-    } catch (error) {
-        res.status(500).send('Error al conectar con la red de KOSMOS PACKS');
+        // Para CSS, JS e imágenes, devuelve el buffer original intacto
+        return responseBuffer;
+      }),
+    },
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+      'Referer': 'https://packsmc.com/'
     }
-});
+  })
+);
 
 app.listen(PORT, () => {
-    console.log(`Servidor Kosmos Packs corriendo en el puerto ${PORT}`);
+  console.log(`Servidor Kosmos Packs en puerto ${PORT}`);
 });
