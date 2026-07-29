@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEEFPACKS — Vault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background-color: #050507; color: #ffffff; font-family: system-ui, sans-serif; }
+        .card-bg { background-color: #0f0f14; border: 1px solid #22222d; }
+        .card-bg:hover { border-color: #ffffff; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <header class="border-b border-[#22222d] bg-[#050507]/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <span class="font-black text-lg tracking-wider">KEEFPACKS</span>
+            <span class="text-xs text-gray-400 font-bold">BY 71x7</span>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-10 w-full flex-grow">
+        <div class="text-center max-w-xl mx-auto mb-10">
+            <h1 class="text-3xl font-black uppercase tracking-tight mb-4">Buscador de Packs</h1>
+            <form onsubmit="searchPacks(event)" class="relative">
+                <input type="text" id="searchInput" placeholder="Buscar texturas, pvp, bedwars..." class="w-full bg-[#0f0f14] border border-[#22222d] rounded-xl px-4 py-3 pl-10 text-sm text-white outline-none focus:border-white transition">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-500 text-sm"></i>
+            </form>
+        </div>
+
+        <div id="loading" class="text-center text-gray-500 text-sm py-10">Cargando paquetes...</div>
+        <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 hidden"></div>
+    </main>
+
+    <footer class="border-t border-[#22222d] py-6 text-center text-xs text-gray-500 font-semibold">
+        KeefPacks © 2026 — Creado por 71x7
+    </footer>
+
+    <script>
+        async function loadPacks(query = '') {
+            const grid = document.getElementById('grid');
+            const loading = document.getElementById('loading');
+            loading.classList.remove('hidden');
+            grid.classList.add('hidden');
+            grid.innerHTML = '';
+
+            try {
+                const res = await fetch(`/api/packs?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if(data.success && data.packs.length > 0) {
+                    data.packs.forEach(pack => {
+                        grid.innerHTML += `
+                            <div class="card-bg rounded-xl p-3 flex flex-col justify-between transition">
+                                <div>
+                                    <div class="aspect-video bg-gray-900 rounded-lg overflow-hidden mb-3 relative">
+                                        <img src="${pack.image}" class="w-full h-full object-cover">
+                                        <span class="absolute top-2 right-2 bg-black/80 text-[10px] px-2 py-0.5 rounded font-bold border border-[#22222d]">${pack.resolution}</span>
+                                    </div>
+                                    <h3 class="font-bold text-sm truncate mb-2">${pack.title}</h3>
+                                </div>
+                                <a href="${pack.downloadUrl}" class="w-full bg-white text-black text-center text-xs font-black py-2 rounded-lg hover:bg-gray-200 transition uppercase">
+                                    <i class="fa-solid fa-download mr-1"></i> Descargar .ZIP
+                                </a>
+                            </div>
+                        `;
+                    });
+                } else {
+                    grid.innerHTML = `<p class="col-span-full text-center text-gray-500 text-sm">No se encontraron packs.</p>`;
+                }
+            } catch (e) {
+                grid.innerHTML = `<p class="col-span-full text-center text-red-500 text-sm">Error al conectar con la base de datos.</p>`;
+            }
+
+            loading.classList.add('hidden');
+            grid.classList.remove('hidden');
+        }
+
+        function searchPacks(e) {
+            e.preventDefault();
+            const q = document.getElementById('searchInput').value;
+            loadPacks(q);
+        }
+
+        loadPacks();
+    </script>
+</body>
+</html>
