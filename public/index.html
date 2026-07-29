@@ -23,23 +23,23 @@
 
     <main class="max-w-6xl mx-auto px-4 py-10 w-full flex-grow">
         <div class="text-center max-w-xl mx-auto mb-10">
-            <h1 class="text-3xl font-black uppercase tracking-tight mb-4">Buscador de Packs</h1>
-            <form onsubmit="searchPacks(event)" class="relative">
-                <input type="text" id="searchInput" placeholder="Buscar texturas, pvp, bedwars..." class="w-full bg-[#0f0f14] border border-[#22222d] rounded-xl px-4 py-3 pl-10 text-sm text-white outline-none focus:border-white transition">
+            <h1 class="text-3xl font-black uppercase tracking-tight mb-4">Buscador de la Comunidad</h1>
+            <div class="relative">
+                <input type="text" id="searchInput" onkeypress="handleSearch(event)" placeholder="Escribe para buscar texturas..." class="w-full bg-[#0f0f14] border border-[#22222d] rounded-xl px-4 py-3 pl-10 text-sm text-white outline-none focus:border-white transition">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-500 text-sm"></i>
-            </form>
+            </div>
         </div>
 
-        <div id="loading" class="text-center text-gray-500 text-sm py-10">Cargando paquetes...</div>
+        <div id="loading" class="text-center text-gray-500 text-sm py-10">Conectando con el catálogo de la comunidad...</div>
         <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 hidden"></div>
     </main>
 
     <footer class="border-t border-[#22222d] py-6 text-center text-xs text-gray-500 font-semibold">
-        KeefPacks © 2026 — Creado por 71x7
+        KeefPacks © 2026 — Desarrollado por 71x7
     </footer>
 
     <script>
-        async function loadPacks(query = '') {
+        async function fetchPacks(query = '') {
             const grid = document.getElementById('grid');
             const loading = document.getElementById('loading');
             loading.classList.remove('hidden');
@@ -47,44 +47,77 @@
             grid.innerHTML = '';
 
             try {
-                const res = await fetch(`/api/packs?q=${encodeURIComponent(query)}`);
-                const data = await res.json();
+                const targetUrl = query 
+                    ? `https://packsmc.com/search?q=${encodeURIComponent(query)}`
+                    : `https://packsmc.com/packs`;
 
-                if(data.success && data.packs.length > 0) {
-                    data.packs.forEach(pack => {
+                // Usamos un proxy CORS para que el navegador evite el bloqueo de Cloudflare
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                const res = await fetch(proxyUrl);
+                const data = await res.json();
+                
+                if (!data.contents) throw new Error("Sin contenido");
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+                const packs = [];
+
+                // Extraemos las tarjetas directamente del HTML que devuelve el proxy
+                doc.querySelectorAll('a[href*="/pack/"]').forEach(el => {
+                    const link = el.getAttribute('href') || '';
+                    const packId = link.split('/').pop();
+                    const titleEl = el.querySelector('h2, h3, .font-bold, span');
+                    const title = titleEl ? titleEl.textContent.trim() : el.textContent.trim();
+                    const imgEl = el.querySelector('img');
+                    const img = imgEl ? imgEl.getAttribute('src') : '';
+
+                    if (packId && title && title.length > 2 && !packs.some(p => p.id === packId)) {
+                        packs.push({
+                            id: packId,
+                            title: title.replace(/PacksMC/gi, 'KeefPacks').substring(0, 40),
+                            image: img.startsWith('http') ? img : (img ? `https://packsmc.com${img}` : 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500'),
+                            url: `https://packsmc.com/pack/${packId}`
+                        });
+                    }
+                });
+
+                if (packs.length > 0) {
+                    packs.forEach(pack => {
                         grid.innerHTML += `
                             <div class="card-bg rounded-xl p-3 flex flex-col justify-between transition">
                                 <div>
-                                    <div class="aspect-video bg-gray-900 rounded-lg overflow-hidden mb-3 relative">
+                                    <div class="aspect-video bg-gray-900 rounded-lg overflow-hidden mb-3">
                                         <img src="${pack.image}" class="w-full h-full object-cover">
-                                        <span class="absolute top-2 right-2 bg-black/80 text-[10px] px-2 py-0.5 rounded font-bold border border-[#22222d]">${pack.resolution}</span>
                                     </div>
                                     <h3 class="font-bold text-sm truncate mb-2">${pack.title}</h3>
                                 </div>
-                                <a href="${pack.downloadUrl}" class="w-full bg-white text-black text-center text-xs font-black py-2 rounded-lg hover:bg-gray-200 transition uppercase">
-                                    <i class="fa-solid fa-download mr-1"></i> Descargar .ZIP
+                                <a href="${pack.url}" target="_blank" class="w-full bg-white text-black text-center text-xs font-black py-2 rounded-lg hover:bg-gray-200 transition uppercase">
+                                    <i class="fa-solid fa-download mr-1"></i> Descargar Pack
                                 </a>
                             </div>
                         `;
                     });
                 } else {
-                    grid.innerHTML = `<p class="col-span-full text-center text-gray-500 text-sm">No se encontraron packs.</p>`;
+                    grid.innerHTML = `<p class="col-span-full text-center text-gray-500 text-sm">No se encontraron paquetes para esta búsqueda.</p>`;
                 }
+
             } catch (e) {
-                grid.innerHTML = `<p class="col-span-full text-center text-red-500 text-sm">Error al conectar con la base de datos.</p>`;
+                grid.innerHTML = `<p class="col-span-full text-center text-red-500 text-sm">Error temporal al conectar con el buscador.</p>`;
             }
 
             loading.classList.add('hidden');
             grid.classList.remove('hidden');
         }
 
-        function searchPacks(e) {
-            e.preventDefault();
-            const q = document.getElementById('searchInput').value;
-            loadPacks(q);
+        function handleSearch(e) {
+            if (e.key === 'Enter') {
+                const query = document.getElementById('searchInput').value;
+                fetchPacks(query);
+            }
         }
 
-        loadPacks();
+        // Cargar packs iniciales al abrir la web
+        fetchPacks();
     </script>
 </body>
 </html>
