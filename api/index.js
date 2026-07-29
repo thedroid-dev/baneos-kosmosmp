@@ -11,7 +11,6 @@ app.use(
     selfHandleResponse: true,
     on: {
       proxyReq: (proxyReq, req, res) => {
-        // Enmascaramiento de identidad hacia el servidor de origen
         proxyReq.setHeader('Host', 'packsmc.com');
         proxyReq.setHeader('Referer', 'https://packsmc.com/');
         proxyReq.setHeader('Origin', 'https://packsmc.com');
@@ -21,42 +20,58 @@ app.use(
         proxyReq.setHeader('Accept-Encoding', 'identity');
       },
       proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-        // Desactivamos bloqueos de seguridad e iframe
         delete proxyRes.headers['content-security-policy'];
         delete proxyRes.headers['x-frame-options'];
 
         const contentType = proxyRes.headers['content-type'] || '';
 
-        // Si la respuesta es la página HTML
         if (contentType.includes('text/html')) {
           let html = responseBuffer.toString('utf8');
 
-          // --- REEMPLAZO MASIVO DE MARCA (KeefPacks / KeefMC) ---
-          
-          // 1. Textos directos de la marca
+          // 1. Reemplazos estáticos directos
           html = html.replace(/PacksMC/gi, 'KeefPacks');
           html = html.replace(/PackMC/gi, 'KeefMC');
           html = html.replace(/packsmc\.com/gi, req.headers.host);
-          html = html.replace(/packsmc/gi, 'keefpacks');
 
-          // 2. Título de la pestaña y Meta Tags SEO
-          html = html.replace(/<title>.*?<\/title>/gi, '<title>KeefPacks — Minecraft Texture Packs & Resources</title>');
-          
-          // 3. Modificación del Footer / Copyright
-          html = html.replace(/©\s*20\d\d\s*PacksMC/gi, '© 2026 KeefPacks. Todos los derechos reservados.');
-
-          // 4. Inyección de CSS para ocultar elementos nativos con el logo viejo si los hay
-          const customStyle = `
-            <style>
-              /* Personalización visual para KeefPacks */
-              ::selection {
-                background-color: #10b981 !important;
-                color: #000 !important;
+          // 2. Inyección de script dinámico para sobreescribir el JavaScript de Next.js
+          const overrideScript = `
+            <script>
+              document.title = "KeefPacks — Minecraft Resource Vault";
+              
+              function replaceTextInNode(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                  node.nodeValue = node.nodeValue.replace(/PacksMC/gi, 'KeefPacks')
+                                                .replace(/PackMC/gi, 'KeefMC')
+                                                .replace(/packsmc/gi, 'keefpacks');
+                } else {
+                  for (let child of node.childNodes) {
+                    replaceTextInNode(child);
+                  }
+                }
               }
-            </style>
-          `;
-          html = html.replace('</head>', `${customStyle}</head>`);
 
+              // Reemplazar inmediatamente al cargar
+              window.addEventListener('DOMContentLoaded', () => {
+                replaceTextInNode(document.body);
+              });
+
+              // Observador que vigila cambios dinámicos en la pantalla (Next.js)
+              const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                  mutation.addedNodes.forEach((node) => {
+                    replaceTextInNode(node);
+                  });
+                });
+              });
+
+              observer.observe(document.documentElement, {
+                childList: true,
+                subtree: true
+              });
+            </script>
+          `;
+
+          html = html.replace('</body>', `${overrideScript}</body>`);
           return html;
         }
 
