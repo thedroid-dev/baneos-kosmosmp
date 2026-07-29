@@ -30,8 +30,18 @@ exports.handler = async function(event, context) {
         let buffer = Buffer.concat(chunks);
         const contentType = res.headers['content-type'] || '';
 
-        // Limpieza de headers de seguridad restrictivos
-        const responseHeaders = { ...res.headers };
+        // LIMPIEZA Y CORRECCIÓN DE HEADERS PARA EVITAR EL ERROR DE LAMBDA
+        const responseHeaders = {};
+        for (let key in res.headers) {
+          let val = res.headers[key];
+          // Si es un array (como set-cookie), lo unimos en un string para que Lambda no falle
+          if (Array.isArray(val)) {
+            responseHeaders[key] = val.join(', ');
+          } else {
+            responseHeaders[key] = val;
+          }
+        }
+
         delete responseHeaders['content-security-policy'];
         delete responseHeaders['x-frame-options'];
 
@@ -103,7 +113,6 @@ exports.handler = async function(event, context) {
             resolve({ statusCode: res.statusCode, headers: responseHeaders, body: modifiedHtml });
           }
         } else {
-          // Archivos estáticos o descargas directas de .zip
           resolve({
             statusCode: res.statusCode,
             headers: responseHeaders,
@@ -124,4 +133,3 @@ exports.handler = async function(event, context) {
     req.end();
   });
 };
-                
