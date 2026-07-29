@@ -1,8 +1,10 @@
 {
-  "name": "kosmos-packs-vercel",
-  "version": "1.0.0",
+  "name": "keefpacks-vault",
+  "version": "2.0.0",
+  "main": "api/index.js",
   "dependencies": {
-    "express": "^4.19.2",
-    "http-proxy-middleware": "^3.0.0"
+    "axios": "^1.6.8",
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.19.2"
   }
 }
