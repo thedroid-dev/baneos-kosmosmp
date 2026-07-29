@@ -7,6 +7,7 @@ app.use(async (req, res) => {
     try {
         const targetUrl = `https://packsmc.com${req.url}`;
         
+        // Obtenemos el contenido de PacksMC simulando ser un navegador real
         const response = await axios.get(targetUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -17,10 +18,11 @@ app.use(async (req, res) => {
 
         let content = response.data.toString('utf-8');
 
-        // Reemplaza la marca en el código
+        // Reemplazamos la marca PacksMC por KOSMOS PACKS en todo el HTML
         content = content.replace(/PacksMC/g, 'KOSMOS PACKS');
         content = content.replace(/packsmc\.com/g, req.headers.host);
 
+        // Eliminamos las cabeceras que bloquean el sitio
         res.removeHeader('X-Frame-Options');
         res.removeHeader('Content-Security-Policy');
         
