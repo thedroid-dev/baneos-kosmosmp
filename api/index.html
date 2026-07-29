@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanciones | KOSMOSMP</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #08080a;
+            --card-bg: #0f0f13;
+            --card-border: #1f1f28;
+            --red-glow: #ff2a4b;
+            --text-main: #ffffff;
+            --text-sub: #8a8a9e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: radial-gradient(circle at 50% 20%, rgba(255, 42, 75, 0.08) 0%, transparent 70%);
+        }
+
+        .header-title { text-align: center; margin-bottom: 35px; }
+        .header-title h1 { font-size: 2.2rem; letter-spacing: 4px; text-shadow: 0 0 15px rgba(255, 42, 75, 0.6); }
+        .header-title p { color: var(--text-sub); font-size: 0.9rem; letter-spacing: 2px; }
+
+        .bans-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+            max-width: 1300px;
+            width: 100%;
+        }
+
+        .ban-card {
+            width: 380px;
+            background: var(--card-bg);
+            border: 1px solid #ff2a4b33;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(255, 42, 75, 0.05);
+            position: relative;
+        }
+
+        .ban-card::before, .ban-card::after {
+            content: ''; position: absolute; width: 30px; height: 2px; background: var(--red-glow);
+        }
+        .ban-card::before { top: 12px; left: 12px; }
+        .ban-card::after { bottom: 12px; right: 12px; }
+
+        .server-title { text-align: center; font-size: 0.8rem; letter-spacing: 3px; color: var(--text-sub); margin-bottom: 15px; }
+
+        .skin-container {
+            background: radial-gradient(circle, #1a1a24 0%, #0a0a0f 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .skin-img { height: 170px; image-rendering: pixelated; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.7)); }
+        .player-name { font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; margin-top: 10px; text-transform: uppercase; }
+
+        .status-badge { text-align: center; margin-bottom: 20px; }
+        .status-label { font-size: 0.65rem; letter-spacing: 2px; color: var(--text-sub); border: 1px solid var(--card-border); padding: 2px 8px; border-radius: 10px; display: inline-block; margin-bottom: 4px; }
+        .status-value { font-size: 2rem; font-weight: 900; color: var(--red-glow); text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 12px rgba(255, 42, 75, 0.6); }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-box { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 10px; }
+        .info-box.full-width { grid-column: span 2; }
+        .info-icon { color: var(--red-glow); font-size: 1rem; }
+        .info-content { display: flex; flex-direction: column; overflow: hidden; }
+        .info-label { font-size: 0.65rem; color: var(--text-sub); text-transform: uppercase; }
+        .info-value { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hash-code { font-family: monospace; color: var(--text-sub); font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+    <div class="header-title">
+        <h1>✦ KOSMOSMP ✦</h1>
+        <p>HISTORIAL DE SANCIONES EN TIEMPO REAL</p>
+    </div>
+
+    <div class="bans-container" id="bansContainer">
+        <p style="color: var(--text-sub);">Cargando sanciones...</p>
+    </div>
+
+    <script>
+        async function loadBans() {
+            try {
+                const response = await fetch('/api/bans');
+                const bans = await response.json();
+
+                const container = document.getElementById('bansContainer');
+                container.innerHTML = '';
+
+                if (!bans || bans.length === 0 || bans.error) {
+                    container.innerHTML = `<p style="color: var(--text-sub);">${bans.error ? 'Error conectando a BD' : 'No hay baneados registrados.'}</p>`;
+                    return;
+                }
+
+                bans.forEach(ban => {
+                    const fecha = new Date(parseInt(ban.time)).toLocaleDateString('es-ES');
+                    const tipo = ban.until <= 0 ? 'Permanente' : 'Temporal';
+                    const expira = ban.until <= 0 ? 'No expira' : new Date(parseInt(ban.until)).toLocaleDateString('es-ES');
+                    const hash = '#' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+
+                    container.innerHTML += `
+                        <div class="ban-card">
+                            <div class="server-title">✦ KOSMOSMP ✦</div>
+                            <div class="skin-container">
+                                <img class="skin-img" src="https://visage.surgeplay.com/full/208/${ban.name}" alt="Skin">
+                                <div class="player-name">${ban.name}</div>
+                            </div>
+                            <div class="status-badge">
+                                <div class="status-label"><i class="fa-solid fa-power-off"></i> ESTADO</div>
+                                <div class="status-value">BANEADO</div>
+                            </div>
+                            <div class="info-grid">
+                                <div class="info-box"><i class="fa-regular fa-user info-icon"></i><div class="info-content"><span class="info-label">TIPO</span><span class="info-value">${tipo}</span></div></div>
+                                <div class="info-box"><i class="fa-regular fa-calendar-days info-icon"></i><div class="info-content"><span class="info-label">FECHA</span><span class="info-value">${fecha}</span></div></div>
+                                <div class="info-box"><i class="fa-solid fa-hourglass-half info-icon"></i><div class="info-content"><span class="info-label">EXPIRA</span><span class="info-value">${expira}</span></div></div>
+                                <div class="info-box"><i class="fa-solid fa-user-ninja info-icon"></i><div class="info-content"><span class="info-label">STAFF / AC</span><span class="info-value">${ban.banned_by_name}</span></div></div>
+                                <div class="info-box full-width"><i class="fa-solid fa-triangle-exclamation info-icon"></i><div class="info-content"><span class="info-label">MOTIVO</span><span class="info-value" title="${ban.reason}">${ban.reason}</span></div></div>
+                                <div class="info-box full-width"><i class="fa-solid fa-cube info-icon"></i><div class="info-content"><span class="info-label">REGISTRO</span><span class="info-value hash-code">${hash}</span></div></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                document.getElementById('bansContainer').innerHTML = '<p style="color: #ff2a4b;">Error de conexión.</p>';
+            }
+        }
+
+        loadBans();
+        setInterval(loadBans, 5000); // Se actualiza solo cada 5 seg
+    </script>
+</body>
+</html>
