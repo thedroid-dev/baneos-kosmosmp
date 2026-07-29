@@ -16,7 +16,7 @@ app.use(
         proxyReq.setHeader('Origin', 'https://packsmc.com');
         proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
         proxyReq.setHeader('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8');
-        proxyReq.setHeader('Accept-Language', 'es-ES,es;q=0.9,en;q=0.8');
+        proxyReq.setHeader('Accept-Language', 'es-ES,es;q=0.9');
         proxyReq.setHeader('Accept-Encoding', 'identity');
       },
       proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
@@ -28,127 +28,139 @@ app.use(
         if (contentType.includes('text/html')) {
           let html = responseBuffer.toString('utf8');
 
-          // --- 1. SUPER CSS: SOBRESCRIBE EL 100% DE LA INTERFAZ A NEGRO/GRIS/BLANCO ---
-          const keefPacksThemeCSS = `
-            <style id="keefpacks-master-theme">
-              /* Fondo general y reset de colores */
-              html, body, div, header, main, footer, section, nav, aside {
-                background-color: #08080a !important;
+          // --- 1. CSS EXTREMO: ANIQUILA EL VERDE Y LOS EFECTOS DE PACKSMC ---
+          const totalRedesignCSS = `
+            <style id="keefpacks-total-overhaul">
+              /* RESET TOTAL A MONOCROMÁTICO (Negro, Gris, Blanco) */
+              :root {
+                --primary: #ffffff !important;
+                --bg-main: #050507 !important;
+                --bg-card: #0f0f14 !important;
+                --border-color: #22222d !important;
+              }
+
+              /* Anulamos TODOS los verdes de raíz */
+              *, *::before, *::after {
+                border-color: var(--border-color) !important;
+              }
+
+              html, body, div, header, main, footer, section, nav, aside, article {
+                background-color: var(--bg-main) !important;
                 color: #e4e4e7 !important;
-                font-family: system-ui, -apple-system, sans-serif !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
               }
 
-              /* Anular colores verdes nativos */
-              *[class*="green"], *[class*="emerald"], *[style*="rgb(16, 185, 129)"], *[style*="#10b981"] {
+              /* Anular elementos verdes/emerald o acentos brillantes */
+              [class*="green"], [class*="emerald"], [style*="rgb(16, 185, 129)"], [style*="#10b981"], [class*="accent"] {
                 color: #ffffff !important;
-                background-color: #27272a !important;
-                border-color: #3f3f46 !important;
+                background-color: #1c1c24 !important;
               }
 
-              /* Tarjetas e ítems de paquetes (Gris Oscuro + Bordes Plata) */
-              article, .card, [class*="card"], [class*="pack-card"], [class*="Item"], [class*="box"] {
-                background: #121216 !important;
-                border: 1px solid #27272a !important;
-                border-radius: 14px !important;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
-                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+              /* Tarjetas de paquetes totalmente renovadas */
+              article, .card, [class*="card"], [class*="pack-card"], [class*="Item"] {
+                background: var(--bg-card) !important;
+                border: 1px solid var(--border-color) !important;
+                border-radius: 16px !important;
+                transition: transform 0.2s ease, border-color 0.2s ease !important;
               }
 
-              article:hover, .card:hover, [class*="card"]:hover, [class*="pack-card"]:hover {
-                transform: translateY(-3px) !important;
+              article:hover, .card:hover, [class*="card"]:hover {
+                transform: translateY(-4px) !important;
                 border-color: #ffffff !important;
-                box-shadow: 0 8px 30px rgba(255, 255, 255, 0.1) !important;
               }
 
-              /* Botones principales y de interacción */
-              button, .btn, [class*="button"], [class*="btn"] {
+              /* Botones Blancos Minimalistas */
+              button, .btn, [class*="button"], [class*="btn"], input[type="submit"] {
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-weight: 700 !important;
-                border-radius: 10px !important;
+                font-weight: 800 !important;
+                border-radius: 12px !important;
                 border: none !important;
-                transition: filter 0.2s ease, transform 0.1s ease !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
               }
 
-              button:hover, .btn:hover {
-                filter: brightness(0.85) !important;
-                transform: scale(1.02) !important;
-              }
-
-              /* Barra de Búsqueda Renovada */
-              input[type="text"], input[type="search"] {
-                background: #121216 !important;
+              /* Buscador y Convertidor Rediseñados */
+              input, select, textarea {
+                background: #0f0f14 !important;
                 color: #ffffff !important;
-                border: 1px solid #3f3f46 !important;
-                border-radius: 999px !important;
-                padding: 12px 20px !important;
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5) !important;
+                border: 1px solid #27272a !important;
+                border-radius: 12px !important;
               }
 
-              input[type="text"]:focus, input[type="search"]:focus {
-                border-color: #ffffff !important;
-                outline: none !important;
-              }
-
-              /* Ocultar secciones de pago, Packs+, cape shop y enlaces a su Discord */
-              [href*="discord"], [href*="packs-plus"], [href*="plus"], 
-              [href*="cape"], [class*="plus"], [class*="exclusive"], 
-              [class*="VIP"], [class*="pricing"], [class*="premium"] {
+              /* Ocultar secciones no deseadas, pagos, Discord y owners antiguos */
+              [href*="discord"], [href*="plus"], [class*="plus"], 
+              [class*="owner"], [class*="credits"], [class*="team"],
+              [href*="checkout"], [class*="pricing"] {
                 display: none !important;
               }
 
-              /* Badges de versión y resolución (16x, 128x, etc) */
-              [class*="badge"], [class*="tag"], [class*="chip"] {
-                background: #27272a !important;
-                color: #ffffff !important;
-                border: 1px solid #3f3f46 !important;
-                border-radius: 6px !important;
-              }
-
-              /* Header y Navegación Flotante */
-              header, [class*="navbar"], [class*="header"] {
-                background: rgba(18, 18, 22, 0.9) !important;
-                backdrop-filter: blur(12px) !important;
-                border-bottom: 1px solid #27272a !important;
+              /* Inyección de Créditos de 71x7 en el Footer */
+              footer::after {
+                content: "KeefPacks © 2026 — Desarrollado & Administrado por 71x7. Todos los derechos reservados." !important;
+                display: block !important;
+                text-align: center !important;
+                padding: 20px !important;
+                font-size: 13px !important;
+                color: #71717a !important;
+                font-weight: 600 !important;
               }
             </style>
           `;
 
-          // --- 2. JAVASCRIPT: REESCRIBE TEXTOS Y VIGILA EL RENDERIZADO ---
-          const keefPacksEngineJS = `
-            <script id="keefpacks-script">
-              document.title = "KEEFPACKS — Texture Packs Vault (Black Edition)";
+          // --- 2. JAVASCRIPT: TRADUCCIÓN AL ESPAÑOL + REMOVEDOR DE OWNERS ---
+          const totalRedesignJS = `
+            <script id="keefpacks-brain">
+              document.title = "KEEFPACKS — Creado por 71x7";
 
-              function applyKeefPacksRules(node) {
+              // Diccionario de traducción y reemplazo masivo
+              const replacements = [
+                [/PacksMC/gi, 'KeefPacks'],
+                [/PackMC/gi, 'KeefMC'],
+                [/packsmc/gi, 'keefpacks'],
+                [/Texture Packs/gi, 'Paquetes de Texturas'],
+                [/Resource Packs/gi, 'Paquetes de Recursos'],
+                [/Download/gi, 'Descargar'],
+                [/Search/gi, 'Buscar'],
+                [/Categories/gi, 'Categorías'],
+                [/Converter/gi, 'Convertidor'],
+                [/Tools/gi, 'Herramientas'],
+                [/Exclusive/gi, 'Destacados'],
+                [/Created by.*/gi, 'Creado por 71x7'],
+                [/Developed by.*/gi, 'Propiedad de 71x7'],
+                [/Owner.*/gi, 'Propietario: 71x7']
+              ];
+
+              function cleanAndTranslate(node) {
                 if (node.nodeType === Node.TEXT_NODE) {
                   let text = node.nodeValue;
-                  if (text.includes('PacksMC') || text.includes('PackMC') || text.includes('packsmc')) {
-                    node.nodeValue = text.replace(/PacksMC/gi, 'KeefPacks')
-                                         .replace(/PackMC/gi, 'KeefMC')
-                                         .replace(/packsmc/gi, 'keefpacks')
-                                         .replace(/Paquetes Exclusivos/gi, 'Destacados')
-                                         .replace(/Packs\+/gi, 'Gratis');
-                  }
+                  replacements.forEach(([from, to]) => {
+                    text = text.replace(from, to);
+                  });
+                  node.nodeValue = text;
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
-                  // Ocultar enlaces directos no deseados
+                  // Ocultar elementos de Discord o links a redes de owners viejos
                   const href = node.getAttribute('href') || '';
-                  if (href.includes('discord') || href.includes('plus') || href.includes('checkout') || href.includes('cape')) {
+                  if (href.includes('discord') || href.includes('twitter') || href.includes('plus')) {
                     node.style.setProperty('display', 'none', 'important');
                     return;
                   }
                   for (let child of node.childNodes) {
-                    applyKeefPacksRules(child);
+                    cleanAndTranslate(child);
                   }
                 }
               }
 
+              // Ejecutar limpieza al cargar
               window.addEventListener('DOMContentLoaded', () => {
-                applyKeefPacksRules(document.body);
+                cleanAndTranslate(document.body);
               });
 
+              // Vigilante constante contra el Javascript dinámico de Next.js
               const observer = new MutationObserver((mutations) => {
                 mutations.forEach((m) => {
-                  m.addedNodes.forEach((n) => applyKeefPacksRules(n));
+                  m.addedNodes.forEach((n) => cleanAndTranslate(n));
                 });
               });
 
@@ -156,9 +168,8 @@ app.use(
             </script>
           `;
 
-          // Inyección en el DOM
-          html = html.replace('</head>', `${keefPacksThemeCSS}</head>`);
-          html = html.replace('</body>', `${keefPacksEngineJS}</body>`);
+          html = html.replace('</head>', `${totalRedesignCSS}</head>`);
+          html = html.replace('</body>', `${totalRedesignJS}</body>`);
 
           return html;
         }
